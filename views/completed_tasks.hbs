@@ -6,9 +6,15 @@
 
         <ul>
             {{#each tasks}}
-                <li>{{this.text}}</li>
+                <li><a href="task/{{this._id}}">{{this.text}}</a></li>
             {{/each}}
         </ul>
+
+        <div class="delete-all-done">
+        <form action='/deleteDone' method="Post">
+            <input  class="delete-all-done-button" type='submit' value='Delete completed tasks' onclick="return confirm('Are you sure?')">
+        </form>
+    </div>
     {{else}}
 
         <p>No tasks have been completed</p>
@@ -16,3 +22,4 @@
     {{/if}}
 
 </div>
+

@@ -70,6 +70,7 @@ router.get('/completed', function(req, res, next){
 
 });
 
+// POST delete tasks
 router.post('/delete', function(req, res, next){
 
     Task.findByIdAndRemove(req.body._id)
@@ -85,6 +86,50 @@ router.post('/delete', function(req, res, next){
         .catch( (err) => {
             next(err);
         })
+});
+
+// POST mark all tasks as done
+
+router.post('/alldone', function(req, res, next){
+
+    Task.updateMany({completed: false}, {completed: true})
+        .then( () => {
+            res.redirect('/');  // if prefered, redirect to /completed 
+        })
+        .catch( (err) => {
+            next(err);
+        });
+});
+
+// GET task specific/detail page
+
+router.get('/task/:_id', function(req, res, next){
+
+    Task.findById(req.params._id)
+        .then( (doc) => {
+            if (doc) {
+                res.render('task', {task: doc});
+            }
+            else {
+                next(); // to the 404 error handler
+            }
+        })
+        .catch( (err) => {
+            next(err);
+        });
+});
+
+// POST delete all completed tasks
+
+router.post('/deleteDone', function(req, res, next){
+
+    Task.deleteMany({completed: true})
+        .then( () => {
+            res.redirect('/');  // redirect to index page
+        })
+        .catch( (err) => {
+            next(err);
+        });
 });
 
 module.exports = router;
