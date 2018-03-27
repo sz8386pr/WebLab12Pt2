@@ -30,3 +30,10 @@ li {
   padding: 10px;
 }
 
+.error-message{
+  color: red;
+}
+
+.info-message{
+  color: green;
+}
