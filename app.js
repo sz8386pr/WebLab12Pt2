@@ -9,7 +9,8 @@ var session = require('express-session');
 var mongoose = require('mongoose');
 
 // Read the mLab connection URL
-var db_url = process.env.MONGO_URL;
+var config = require('./config/db_config');
+var db_url = config.db_url;
 
 // and connect to the db. Print success or error message
 mongoose.connect(db_url)
