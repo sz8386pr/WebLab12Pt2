@@ -1,9 +1,18 @@
 <h2>{{task.text}}</h2>
 
 <div class='task-info'>
+    <p>Task was created on {{task.dateCreated}}</p>
     {{#if task.completed}}
-        <p>{{task.text}} is completed.</p>
+        <p>{{task.text}} is completed on {{task.dateCompleted}}.</p>
     {{else}}
-        <p>{{task.text}} is not yet completed</p>
+        <p>{{task.text}} is not yet completed.</p>
+        <form class="done-form" action="/done" method="POST">
+            <input class="done-button" type="submit" name="done" value="Done!">
+            <input type="hidden" name="_id" value="{{task._id}}">
+        </form>
     {{/if}}
+    <form class="delete-form" action="/delete" method="POST">
+        <input class="delete-button" type="submit" name="delete" value="Delete" onclick="return confirm('Are you sure?')">
+        <input type="hidden" name="_id" value="{{task._id}}">
+    </form>
 </div>

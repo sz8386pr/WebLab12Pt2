@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var Task = require('../models/task');
+var d = new Date();
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -22,7 +23,7 @@ router.post('/add', function(req, res, next){
     // Check if something was entered in the text input
     if (req.body.text) {
         //create new Task
-        var t = new Task({text: req.body.text, completed: false})
+        var t = new Task({text: req.body.text, completed: false, dateCreated: d})
         // save the task, and redirect to home page if successful
         t.save().then((newTask) => {
             console.log('The new task created is ', newTask); //debug
@@ -42,7 +43,7 @@ router.post('/add', function(req, res, next){
 
 router.post('/done', function(req, res, next){
 
-    Task.findByIdAndUpdate( req.body._id, {completed:true})
+    Task.findByIdAndUpdate( req.body._id, {dateCompleted: d, completed:true})
         .then( (originalTask) => {
             // originalTask only has a value if a document with this _id was found
             if (originalTask) {
@@ -129,6 +130,7 @@ router.post('/deleteDone', function(req, res, next){
 
     Task.deleteMany({completed: true})
         .then( () => {
+            req.flash('info', 'All completed tasks deleted')
             res.redirect('/');  // redirect to index page
         })
         .catch( (err) => {

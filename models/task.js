@@ -7,7 +7,9 @@ var Schema = mongoose.Schema;
 //define a schema - what fields will a task document have?
 var taskSchema = new Schema({
     text: String,
-    completed: Boolean
+    completed: Boolean,
+    dateCreated: Date,
+    dateCompleted: Date,
 });
 
 // compile taskSchma desc into a Mongoose model with the name 'Task'
@@ -23,4 +25,3 @@ Task.find({completed: true})
 
 // export the Task model for use in the application
 module.exports = Task;
-
