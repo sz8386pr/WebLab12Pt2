@@ -7,20 +7,18 @@ var bodyParser = require('body-parser');
 var flash = require('express-flash');
 var session = require('express-session');
 var mongoose = require('mongoose');
+var MongoDBStore = require('connect-mongodb-session')(session);
+var passport = require('passport');
+var passportConfig = require('./config/passport')(passport);
+
+var tasks = require('./routes/tasks');
+var auth = require('./routes/auth');
+
+var app = express();
 
 // Read the mLab connection URL
 var config = require('./config/db_config');
-var db_url = config.db_url;
-
-// and connect to the db. Print success or error message
-mongoose.connect(db_url)
-    .then( () => { console.log('Connected to mLab'); })
-    .catch( (err) => { console.log('Error connecting to mLab', err); });
-
-var index = require('./routes/index');
-var users = require('./routes/users');
-
-var app = express();
+var mongo_url = process.env.MONGO_URL;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -32,14 +30,30 @@ app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-
-app.use(session({secret: 'top secret', resave: false, saveUninitialized: false}));
-app.use(flash());
-
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', index);
-app.use('/users', users);
+// var store = MongoDBStore( {uri: db_url, collection : 'tasks_sessions'});
+// Configure flash messaging. Do this after cookieParser
+app.use(session({
+    secret: 'top secret',
+    resave: true,
+    saveUninitialized: true,
+    store: new MongoDBStore( { uri: mongo_url })
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use(flash());
+
+// and connect to the db. Print success or error message
+mongoose.connect(mongo_url)
+    .then( () => { console.log('Connected to mLab'); })
+    .catch( (err) => { console.log('Error connecting to mLab', err); });
+
+
+app.use('/auth', auth);
+app.use('/', tasks);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

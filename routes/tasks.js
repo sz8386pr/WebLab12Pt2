@@ -1,14 +1,28 @@
 var express = require('express');
 var router = express.Router();
-var Task = require('../models/task');
-var d = new Date();
+var Task = require('../models/task.js');
+
+// Ensure that user is logged in before they can do any thing
+// Create a middleware function to check if user is logged in
+function isLoggedIn(req, res, next) {
+    console.log('user is auth ', req.user);
+    if (req.isAuthenticated()) {
+        res.locals.username = req.user.local.username;
+        next();
+    } else {
+        res.redirect('/auth')
+    }
+}
+
+// This will require all the routes in this file to use isLoggedIn middleware
+router.use(isLoggedIn);
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
 
-  Task.find( {completed: false} )
+  Task.find( { _creator : req.user, completed: false} )
       .then( (docs) => {
-        res.render('index', {title: 'Incomplete tasks', tasks: docs} );
+        res.render('index', {title: 'TODO list', tasks: docs} );
       })
       .catch( (err) => {
         next(err);  // forward to the error handlers
@@ -21,9 +35,9 @@ router.get('/', function(req, res, next) {
 router.post('/add', function(req, res, next){
 
     // Check if something was entered in the text input
-    if (req.body.text) {
+    if (req.body.text || req.body ) {
         //create new Task
-        var t = new Task({text: req.body.text, completed: false, dateCreated: d})
+        var t = new Task({ _creator: req.user, text: req.body.text, completed: false, dateCreated: Date.now()});
         // save the task, and redirect to home page if successful
         t.save().then((newTask) => {
             console.log('The new task created is ', newTask); //debug
@@ -33,7 +47,7 @@ router.post('/add', function(req, res, next){
         });
     }
     else {
-        req.flash('error', 'Please enter a task.')
+        req.flash('error', 'Please enter a task.');
         res.redirect('/');  // else, ignore and redirect to homepage
     }
 });
@@ -43,18 +57,27 @@ router.post('/add', function(req, res, next){
 
 router.post('/done', function(req, res, next){
 
-    Task.findByIdAndUpdate( req.body._id, {dateCompleted: d, completed:true})
-        .then( (originalTask) => {
+    // Find if the task exists
+    Task.find({_id: req.body._id})
+        .then( (task) => {
+            if (!task) {
+                res.status(404).send('There is no task with this id!');
+            }
+        }).catch( (err) => {
+        next(err);
+    });
+
+    Task.findByIdAndUpdate( {_id: req.body._id, _creator: req.user.id}, {dateCompleted: Date.now(), completed:true})
+        .then( (task) => {
             // originalTask only has a value if a document with this _id was found
-            if (originalTask) {
-                req.flash('info', originalTask.text + ' marked as done!');
-                res.redirect('/'); // redirect to list of tasks
+            if (!task) {
+                res.status(403).send('This is not your task!');
             }
             else {
-                var err = new Error('Not Found');  // report Task not found with 404 status
-                err.status = 404;
-                next(err);
+                req.flash('info', 'Task marked as done');
+                res.redirect('/');
             }
+
         })
         .catch( (err) => {
             next(err);  // to error handlers
@@ -64,7 +87,7 @@ router.post('/done', function(req, res, next){
 // GET completed tasks
 router.get('/completed', function(req, res, next){
 
-    Task.find({completed:true})
+    Task.find({_creator: req.user._id, completed:true})
         .then( (docs) => {
             res.render('completed_tasks', { title: 'Completed tasks', tasks: docs });
         }).catch( (err) => {
@@ -96,8 +119,8 @@ router.post('/delete', function(req, res, next){
 
 router.post('/alldone', function(req, res, next){
 
-    Task.updateMany({completed: false}, {completed: true})
-        .then( () => {
+    Task.updateMany({_creator: req.user, completed: false}, {dateCompleted: Date.now(), completed: true}, {multi: true})
+        .then( (result) => {
             req.flash('info', 'All tasks are done!');
             res.redirect('/');  // if prefered, redirect to /completed
         })
@@ -111,12 +134,15 @@ router.post('/alldone', function(req, res, next){
 router.get('/task/:_id', function(req, res, next){
 
     Task.findById(req.params._id)
-        .then( (doc) => {
-            if (doc) {
-                res.render('task', {task: doc});
+        .then( (task) => {
+            if (!task) {
+                res.status(404).send('Task not found.');
+            }
+            else if (!task._creator.equals(req.user._id)) {
+                res.status(403).send('This is not your task!')
             }
             else {
-                next(); // to the 404 error handler
+                res.render('task', {task: task,})
             }
         })
         .catch( (err) => {
